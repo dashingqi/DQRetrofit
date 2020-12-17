@@ -35,8 +35,10 @@ final class GsonResponseBodyConverter<T> implements Converter<ResponseBody, T> {
 
   @Override
   public T convert(ResponseBody value) throws IOException {
+    //获取到流 将流转换成 JsonReader对象
     JsonReader jsonReader = gson.newJsonReader(value.charStream());
     try {
+      //通过Gson将JsonReader转换成对应的数据类型
       T result = adapter.read(jsonReader);
       if (jsonReader.peek() != JsonToken.END_DOCUMENT) {
         throw new JsonIOException("JSON document was not fully consumed.");

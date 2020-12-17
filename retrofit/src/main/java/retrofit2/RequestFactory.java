@@ -66,6 +66,7 @@ import retrofit2.http.Url;
 
 final class RequestFactory {
     static RequestFactory parseAnnotations(Retrofit retrofit, Method method) {
+        //建造者模式 构建了RequestFactory对象
         return new Builder(retrofit, method).build();
     }
 
@@ -101,6 +102,7 @@ final class RequestFactory {
     /**
      * 创建了一个OkHttp3中的Request对象
      * 这个request对象就是我们作为网络请求的的参数
+     *
      * @param args
      * @return
      * @throws IOException
@@ -191,7 +193,9 @@ final class RequestFactory {
             this.method = method;
             //获取到作用到该方法的注解
             this.methodAnnotations = method.getAnnotations();
+            //获取到该方法参数的类型
             this.parameterTypes = method.getGenericParameterTypes();
+            //获取到该方法参数的注解中的内容
             this.parameterAnnotationsArray = method.getParameterAnnotations();
         }
 
@@ -202,7 +206,7 @@ final class RequestFactory {
          */
         RequestFactory build() {
             for (Annotation annotation : methodAnnotations) {
-                //解析 path
+                //解析 作用在方法上的注解
                 parseMethodAnnotation(annotation);
             }
 

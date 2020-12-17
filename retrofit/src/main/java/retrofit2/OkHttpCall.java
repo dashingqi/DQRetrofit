@@ -52,10 +52,10 @@ final class OkHttpCall<T> implements Call<T> {
       Object[] args,
       okhttp3.Call.Factory callFactory,
       Converter<ResponseBody, T> responseConverter) {
-    //创建 OkHttpCall对象时候传递进来的
+    //创建 这个对象携带着请求的参数
     this.requestFactory = requestFactory;
     this.args = args;
-    //创建OkHttpCall对象时候传递进来的
+    //callFactory 是一个OkHttpClient类型的对象
     this.callFactory = callFactory;
     this.responseConverter = responseConverter;
   }
