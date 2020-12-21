@@ -193,7 +193,7 @@ final class RequestFactory {
             this.method = method;
             //获取到作用到该方法的注解
             this.methodAnnotations = method.getAnnotations();
-            //获取到该方法参数的类型
+            //获取到该方法参数的类型 generic 是能获取到泛型的
             this.parameterTypes = method.getGenericParameterTypes();
             //获取到该方法参数的注解中的内容
             this.parameterAnnotationsArray = method.getParameterAnnotations();
