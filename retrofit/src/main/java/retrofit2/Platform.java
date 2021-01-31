@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import org.codehaus.mojo.animal_sniffer.IgnoreJRERequirement;
 
 class Platform {
+
   private static final Platform PLATFORM = findPlatform();
 
   static Platform get() {
