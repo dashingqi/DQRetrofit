@@ -21,118 +21,122 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Objects;
 import java.util.concurrent.Executor;
+
 import javax.annotation.Nullable;
+
 import okhttp3.Request;
 import okio.Timeout;
 
 final class DefaultCallAdapterFactory extends CallAdapter.Factory {
-  private final @Nullable Executor callbackExecutor;
+    private final @Nullable
+    Executor callbackExecutor;
 
-  DefaultCallAdapterFactory(@Nullable Executor callbackExecutor) {
-    this.callbackExecutor = callbackExecutor;
-  }
-
-  @Override
-  public @Nullable CallAdapter<?, ?> get(
-      Type returnType, Annotation[] annotations, Retrofit retrofit) {
-    if (getRawType(returnType) != Call.class) {
-      return null;
-    }
-    if (!(returnType instanceof ParameterizedType)) {
-      throw new IllegalArgumentException(
-          "Call return type must be parameterized as Call<Foo> or Call<? extends Foo>");
-    }
-    final Type responseType = Utils.getParameterUpperBound(0, (ParameterizedType) returnType);
-
-    final Executor executor =
-        Utils.isAnnotationPresent(annotations, SkipCallbackExecutor.class)
-            ? null
-            : callbackExecutor;
-
-    //添加默认的CallAdapter
-    return new CallAdapter<Object, Call<?>>() {
-      @Override
-      public Type responseType() {
-        return responseType;
-      }
-
-      @Override
-      public Call<Object> adapt(Call<Object> call) {
-        return executor == null ? call : new ExecutorCallbackCall<>(executor, call);
-      }
-    };
-  }
-
-  static final class ExecutorCallbackCall<T> implements Call<T> {
-    final Executor callbackExecutor;
-    final Call<T> delegate;
-
-    ExecutorCallbackCall(Executor callbackExecutor, Call<T> delegate) {
-      this.callbackExecutor = callbackExecutor;
-      this.delegate = delegate;
+    DefaultCallAdapterFactory(@Nullable Executor callbackExecutor) {
+        this.callbackExecutor = callbackExecutor;
     }
 
     @Override
-    public void enqueue(final Callback<T> callback) {
-      Objects.requireNonNull(callback, "callback == null");
+    public @Nullable
+    CallAdapter<?, ?> get(
+            Type returnType, Annotation[] annotations, Retrofit retrofit) {
+        if (getRawType(returnType) != Call.class) {
+            return null;
+        }
+        if (!(returnType instanceof ParameterizedType)) {
+            throw new IllegalArgumentException(
+                    "Call return type must be parameterized as Call<Foo> or Call<? extends Foo>");
+        }
+        final Type responseType = Utils.getParameterUpperBound(0, (ParameterizedType) returnType);
 
-      delegate.enqueue(
-          new Callback<T>() {
+        final Executor executor =
+                Utils.isAnnotationPresent(annotations, SkipCallbackExecutor.class)
+                        ? null
+                        : callbackExecutor;
+
+        //添加默认的CallAdapter
+        return new CallAdapter<Object, Call<?>>() {
             @Override
-            public void onResponse(Call<T> call, final Response<T> response) {
-              callbackExecutor.execute(
-                  () -> {
-                    if (delegate.isCanceled()) {
-                      // Emulate OkHttp's behavior of throwing/delivering an IOException on
-                      // cancellation.
-                      callback.onFailure(ExecutorCallbackCall.this, new IOException("Canceled"));
-                    } else {
-                      callback.onResponse(ExecutorCallbackCall.this, response);
-                    }
-                  });
+            public Type responseType() {
+                return responseType;
             }
 
             @Override
-            public void onFailure(Call<T> call, final Throwable t) {
-              callbackExecutor.execute(() -> callback.onFailure(ExecutorCallbackCall.this, t));
+            public Call<Object> adapt(Call<Object> call) {
+                return executor == null ? call : new ExecutorCallbackCall<>(executor, call);
             }
-          });
+        };
     }
 
-    @Override
-    public boolean isExecuted() {
-      return delegate.isExecuted();
-    }
+    static final class ExecutorCallbackCall<T> implements Call<T> {
+        final Executor callbackExecutor;
+        final Call<T> delegate;
 
-    @Override
-    public Response<T> execute() throws IOException {
-      return delegate.execute();
-    }
+        ExecutorCallbackCall(Executor callbackExecutor, Call<T> delegate) {
+            this.callbackExecutor = callbackExecutor;
+            this.delegate = delegate;
+        }
 
-    @Override
-    public void cancel() {
-      delegate.cancel();
-    }
+        @Override
+        public void enqueue(final Callback<T> callback) {
+            Objects.requireNonNull(callback, "callback == null");
 
-    @Override
-    public boolean isCanceled() {
-      return delegate.isCanceled();
-    }
+            delegate.enqueue(
+                    new Callback<T>() {
+                        @Override
+                        public void onResponse(Call<T> call, final Response<T> response) {
+                            callbackExecutor.execute(
+                                    () -> {
+                                        if (delegate.isCanceled()) {
+                                            // Emulate OkHttp's behavior of throwing/delivering an IOException on
+                                            // cancellation.
+                                            callback.onFailure(ExecutorCallbackCall.this, new IOException("Canceled"));
+                                        } else {
+                                            callback.onResponse(ExecutorCallbackCall.this, response);
+                                        }
+                                    });
+                        }
 
-    @SuppressWarnings("CloneDoesntCallSuperClone") // Performing deep clone.
-    @Override
-    public Call<T> clone() {
-      return new ExecutorCallbackCall<>(callbackExecutor, delegate.clone());
-    }
+                        @Override
+                        public void onFailure(Call<T> call, final Throwable t) {
+                            callbackExecutor.execute(() -> callback.onFailure(ExecutorCallbackCall.this, t));
+                        }
+                    });
+        }
 
-    @Override
-    public Request request() {
-      return delegate.request();
-    }
+        @Override
+        public boolean isExecuted() {
+            return delegate.isExecuted();
+        }
 
-    @Override
-    public Timeout timeout() {
-      return delegate.timeout();
+        @Override
+        public Response<T> execute() throws IOException {
+            return delegate.execute();
+        }
+
+        @Override
+        public void cancel() {
+            delegate.cancel();
+        }
+
+        @Override
+        public boolean isCanceled() {
+            return delegate.isCanceled();
+        }
+
+        @SuppressWarnings("CloneDoesntCallSuperClone") // Performing deep clone.
+        @Override
+        public Call<T> clone() {
+            return new ExecutorCallbackCall<>(callbackExecutor, delegate.clone());
+        }
+
+        @Override
+        public Request request() {
+            return delegate.request();
+        }
+
+        @Override
+        public Timeout timeout() {
+            return delegate.timeout();
+        }
     }
-  }
 }

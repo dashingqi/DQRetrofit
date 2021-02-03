@@ -148,7 +148,7 @@ public final class Retrofit {
                         service.getClassLoader(),
                         // 字节码对象
                         new Class<?>[]{service},
-                        // InvocationHandler 中的invoke方法
+                        // InvocationHandler 中的invoke方法 作为一层拦截，可以搞事情
                         new InvocationHandler() {
                             private final Platform platform = Platform.get();
                             private final Object[] emptyArgs = new Object[0];
@@ -260,6 +260,7 @@ public final class Retrofit {
         Objects.requireNonNull(returnType, "returnType == null");
         Objects.requireNonNull(annotations, "annotations == null");
 
+        //从适配器工厂中，拿到一个符合条件的CallAdapter
         int start = callAdapterFactories.indexOf(skipPast) + 1;
         for (int i = start, count = callAdapterFactories.size(); i < count; i++) {
             CallAdapter<?, ?> adapter = callAdapterFactories.get(i).get(returnType, annotations, this);
@@ -438,13 +439,17 @@ public final class Retrofit {
      * optional.
      */
     public static final class Builder {
+        //平台
         private final Platform platform;
         private @Nullable
         okhttp3.Call.Factory callFactory;
         private @Nullable
         HttpUrl baseUrl;
+        //数据转换器集合
         private final List<Converter.Factory> converterFactories = new ArrayList<>();
+        //适配器集合
         private final List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>();
+        //线程切换 使用了Handler
         private @Nullable
         Executor callbackExecutor;
         private boolean validateEagerly;
@@ -454,6 +459,7 @@ public final class Retrofit {
         }
 
         public Builder() {
+            //获取到平台
             this(Platform.get());
         }
 
@@ -660,7 +666,7 @@ public final class Retrofit {
 
             // Make a defensive copy of the adapters and add the default Call adapter.
             List<CallAdapter.Factory> callAdapterFactories = new ArrayList<>(this.callAdapterFactories);
-            //田间一个默认的CallAdapter
+            //设置一个默认的CallAdapter
             callAdapterFactories.addAll(platform.defaultCallAdapterFactories(callbackExecutor));
 
             // Make a defensive copy of the converters.
